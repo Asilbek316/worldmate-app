@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WorldMate — Global Travel Assistant</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#06101d;--panel:#0c1b2d;--panel2:#10243b;--text:#eef6ff;--muted:#8ea5bd;--accent:#52b6ff;--line:#203752;--ok:#61d39b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#06101c,#0b1728 55%,#07111f);color:var(--text);font:15px Inter,system-ui,Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.top{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 22px;gap:18px;position:sticky;top:0;background:#07111ff2;backdrop-filter:blur(12px);z-index:1000}.logo{font-weight:800;font-size:21px}.logo span{color:var(--accent)}nav{display:flex;gap:5px;overflow:auto}nav button,.ghost{background:transparent;border:1px solid transparent;color:var(--muted);padding:9px 11px;border-radius:10px}nav button:hover,.ghost:hover{background:var(--panel);color:var(--text)}.grow{flex:1}.lang{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px;border-radius:9px}.hero{max-width:1200px;margin:auto;padding:38px 20px 18px}.hero h1{font-size:43px;line-height:1.05;margin:0 0 12px}.hero p{color:var(--muted);font-size:17px;max-width:790px}.search{display:flex;gap:10px;margin:22px 0}.search input{flex:1;background:#0b192b;border:1px solid var(--line);color:var(--text);padding:15px;border-radius:13px}.primary{background:var(--accent);color:#02101d;border:0;font-weight:800;padding:12px 17px;border-radius:12px}.grid{max-width:1200px;margin:auto;padding:10px 20px 40px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:linear-gradient(160deg,var(--panel),#0a1829);border:1px solid var(--line);border-radius:18px;padding:18px;min-height:155px}.card h3{margin:0 0 9px}.muted{color:var(--muted)}.wide{grid-column:span 2}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}.input{width:100%;background:#081728;border:1px solid var(--line);color:var(--text);padding:11px;border-radius:10px}.map{height:365px;border-radius:14px;overflow:hidden;margin-top:12px}.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;z-index:3000;padding:20px}.modal.on{display:flex}.modalbox{background:#0c1b2d;border:1px solid var(--line);border-radius:18px;padding:22px;width:min(470px,100%)}.modalbox h2{margin-top:0}.toast{position:fixed;right:18px;bottom:18px;background:#122a42;border:1px solid var(--line);padding:12px 16px;border-radius:12px;display:none;z-index:4000}.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:6px 9px;margin:3px;color:var(--muted)}.ok{color:var(--ok)}@media(max-width:850px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.hero h1{font-size:33px}nav{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+<div class="logo">World<span>Mate</span> 🌍</div>
+<nav>
+<button onclick="scrollToId('mapCard')" data-i="map">Map</button>
+<button onclick="scrollToId('tools')" data-i="tools">Tools</button>
+<button onclick="scrollToId('planner')" data-i="planner">Planner</button>
+<button onclick="scrollToId('safety')" data-i="safety">Safety</button>
+<button onclick="scrollToId('account')" data-i="account">Account</button>
+</nav>
+<div class="grow"></div>
+<select id="lang" class="lang" onchange="setLang(this.value)">
+<option value="en">🇬🇧 English</option><option value="ru">🇷🇺 Русский</option><option value="uz">🇺🇿 O‘zbekcha</option>
+</select>
+<button class="ghost" onclick="openAuth()" id="authBtn">Sign in</button>
+</header>
+
+<section class="hero">
+<h1 data-t="hero">Travel the world. One app.</h1>
+<p data-t="sub">Maps, weather, currency, translation, planning and travel tools — built for travelers everywhere.</p>
+<div class="search"><input id="dest" data-ph="search" placeholder="Search a destination, city or place"><button class="primary" onclick="searchPlace()" data-t="searchBtn">Search</button></div>
+</section>
+
+<main class="grid">
+<section class="card wide" id="mapCard">
+<h3>🗺️ <span data-t="mapTitle">Smart Map</span></h3>
+<div class="row"><input class="input" id="mapSearch" placeholder="City or place"><button class="primary" onclick="searchMap()">Find</button><button class="ghost" onclick="locateMe()">📍 My location</button></div>
+<div id="map" class="map"></div><div id="routeInfo" class="muted"></div>
+</section>
+
+<section class="card"><h3>🌤️ <span data-t="weatherTitle">Weather</span></h3><div id="weather" class="muted">Search a destination to see weather.</div><div class="actions"><button class="ghost" onclick="useDestWeather()">Use destination</button></div></section>
+
+<section class="card" id="tools"><h3>💱 <span data-t="currency">Currency</span></h3>
+<div class="row"><input class="input" id="base" value="USD"><input class="input" id="quote" value="EUR"><input class="input" id="amount" value="1" type="number"><button class="primary" onclick="convert()">Convert</button></div><p id="fx" class="muted">—</p></section>
+
+<section class="card"><h3>🗣️ <span data-t="translator">Translator</span></h3>
+<textarea class="input" id="trText" rows="3" placeholder="Type text"></textarea>
+<div class="actions"><button class="primary" onclick="speakText()">🔊 Speak</button><button class="ghost" onclick="listen()">🎙️ Voice input</button></div>
+<p class="muted" data-t="voiceNote">Browser voice input/output is available where supported.</p></section>
+
+<section class="card"><h3>📷 <span data-t="camera">Camera Translator</span></h3>
+<video id="cam" autoplay playsinline style="width:100%;border-radius:12px;display:none"></video>
+<div class="actions"><button class="primary" onclick="camera()">Open camera</button><button class="ghost" onclick="stopCamera()">Stop</button></div>
+<p class="muted" data-t="cameraNote">Camera preview is ready for OCR integration.</p></section>
+
+<section class="card" id="planner"><h3>🧭 <span data-t="plannerTitle">AI Travel Planner</span></h3>
+<div class="row"><input class="input" id="pDest" placeholder="Destination"><input class="input" id="days" type="number" value="3" min="1" max="60"><input class="input" id="budget" placeholder="Budget"></div>
+<button class="primary" onclick="plan()">Build itinerary</button><div id="planOut" class="muted" style="margin-top:10px"></div></section>
+
+<section class="card" id="safety"><h3>🛡️ <span data-t="safetyTitle">Safety Center</span></h3>
+<p class="muted" data-t="safetyText">Emergency information depends on your country. Choose the destination first; do not assume one number works everywhere.</p>
+<div class="actions"><button class="ghost" onclick="showMsg(T[lang].safetyHint)">Emergency info</button></div></section>
+
+<section class="card"><h3>💬 <span data-t="assistant">WorldMate Assistant</span></h3>
+<div class="row"><input class="input" id="ask" placeholder="Ask about your trip"><button class="primary" onclick="askAI()">Ask</button></div>
+<p id="answer" class="muted"></p></section>
+
+<section class="card" id="account"><h3>👤 <span data-t="accountTitle">Account</span></h3>
+<p id="me" class="muted">Guest mode — no server account is required for GitHub Pages.</p>
+<div class="actions"><button class="primary" onclick="openAuth()">Local profile</button><button class="ghost" onclick="logout()">Log out</button></div></section>
+
+<section class="card full"><h3>📢 <span data-t="news">Announcements</span></h3><div id="news" class="muted"></div></section>
+</main>
+
+<div class="modal" id="auth"><div class="modalbox">
+<h2 data-t="profileTitle">WorldMate Local Profile</h2>
+<input class="input" id="ident" placeholder="Name or username">
+<div class="actions"><button class="primary" onclick="saveProfile()">Save</button><button class="ghost" onclick="closeAuth()">Close</button></div>
+<p class="muted" data-t="profileNote">This GitHub Pages edition stores the demo profile only in this browser. Real cloud authentication requires a backend/OAuth provider.</p>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const T={
+en:{hero:"Travel the world. One app.",sub:"Maps, weather, currency, translation, planning and travel tools — built for travelers everywhere.",search:"Search a destination, city or place",searchBtn:"Search",map:"Map",tools:"Tools",planner:"Planner",safety:"Safety",account:"Account",mapTitle:"Smart Map",weatherTitle:"Weather",currency:"Currency",translator:"Translator",voiceNote:"Browser voice input/output is available where supported.",camera:"Camera Translator",cameraNote:"Camera preview is ready for OCR integration.",plannerTitle:"AI Travel Planner",safetyTitle:"Safety Center",safetyText:"Emergency information depends on your country. Choose the destination first; do not assume one number works everywhere.",safetyHint:"Select your destination/country first so the correct emergency information can be used.",assistant:"WorldMate Assistant",accountTitle:"Account",news:"Announcements",profileTitle:"WorldMate Local Profile",profileNote:"This GitHub Pages edition stores the demo profile only in this browser. Real cloud authentication requires a backend/OAuth provider."},
+ru:{hero:"Путешествуй по миру. Одно приложение.",sub:"Карты, погода, валюты, переводчик, планирование и инструменты путешествий — для всего мира.",search:"Найти страну, город или место",searchBtn:"Найти",map:"Карта",tools:"Инструменты",planner:"Планировщик",safety:"Безопасность",account:"Аккаунт",mapTitle:"Умная карта",weatherTitle:"Погода",currency:"Валюта",translator:"Переводчик",voiceNote:"Голосовой ввод/вывод доступен в поддерживаемых браузерах.",camera:"Переводчик с камеры",cameraNote:"Предпросмотр камеры готов для интеграции OCR.",plannerTitle:"AI-планировщик",safetyTitle:"Центр безопасности",safetyText:"Экстренная информация зависит от страны. Сначала выберите место назначения.",safetyHint:"Сначала выберите страну, чтобы использовать правильную экстренную информацию.",assistant:"Помощник WorldMate",accountTitle:"Аккаунт",news:"Объявления",profileTitle:"Локальный профиль WorldMate",profileNote:"В версии GitHub Pages демонстрационный профиль хранится только в этом браузере. Для настоящей облачной авторизации нужен backend/OAuth."},
+uz:{hero:"Butun dunyo. Bitta ilova.",sub:"Xarita, ob-havo, valyuta, tarjimon, sayohat rejalashtirish va boshqa vositalar — butun dunyo uchun.",search:"Davlat, shahar yoki joyni qidiring",searchBtn:"Qidirish",map:"Xarita",tools:"Vositalar",planner:"Rejalashtiruvchi",safety:"Xavfsizlik",account:"Profil",mapTitle:"Aqlli xarita",weatherTitle:"Ob-havo",currency:"Valyuta",translator:"Tarjimon",voiceNote:"Ovozli kiritish/chiqarish qo‘llab-quvvatlanadigan brauzerlarda ishlaydi.",camera:"Kamera tarjimoni",cameraNote:"Kamera ko‘rinishi OCR integratsiyasi uchun tayyor.",plannerTitle:"AI sayohat rejalashtiruvchisi",safetyTitle:"Xavfsizlik markazi",safetyText:"Favqulodda ma'lumotlar mamlakatga bog‘liq. Avval manzilni tanlang.",safetyHint:"To‘g‘ri favqulodda ma'lumotdan foydalanish uchun avval mamlakatni tanlang.",assistant:"WorldMate yordamchisi",accountTitle:"Profil",news:"E'lonlar",profileTitle:"WorldMate mahalliy profili",profileNote:"GitHub Pages versiyasida demo profil faqat shu brauzerda saqlanadi. Haqiqiy bulutli autentifikatsiya uchun backend/OAuth kerak."}
+};
+let lang=localStorage.wmLang||"en",map,marker,current,routeLine;
+function setLang(x){lang=x;localStorage.wmLang=x;document.documentElement.lang=x;document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T[x][e.dataset.t]);document.querySelectorAll("[data-i]").forEach(e=>e.textContent=T[x][e.dataset.i]);document.querySelectorAll("[data-ph]").forEach(e=>e.placeholder=T[x][e.dataset.ph]);}
+document.getElementById("lang").value=lang;setLang(lang);
+function showMsg(s){const x=document.getElementById("toast");x.textContent=s;x.style.display="block";setTimeout(()=>x.style.display="none",3000)}
+function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:"smooth"})}
+function initMap(){map=L.map("map").setView([20,0],2);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap contributors"}).addTo(map)}
+async function geo(q){const r=await fetch("https://geocoding-api.open-meteo.com/v1/search?name="+encodeURIComponent(q)+"&count=5&language="+(lang==="ru"?"ru":"en")+"&format=json");const x=await r.json();return x.results||[]}
+async function searchMap(){const q=document.getElementById("mapSearch").value||document.getElementById("dest").value;if(!q)return showMsg(T[lang].search);const a=await geo(q);if(!a.length)return showMsg("Place not found");const p=a[0];current=p;map.setView([p.latitude,p.longitude],11);if(marker)marker.remove();marker=L.marker([p.latitude,p.longitude]).addTo(map).bindPopup((p.name||q)+"<br>"+(p.country||"")).openPopup();getWeather(p.latitude,p.longitude,p.name);document.getElementById("routeInfo").textContent="Location found. Use the map for exploration.";document.getElementById("mapCard").scrollIntoView({behavior:"smooth"})}
+function searchPlace(){document.getElementById("mapSearch").value=document.getElementById("dest").value;searchMap()}
+function locateMe(){if(!navigator.geolocation)return showMsg("Geolocation is not supported.");navigator.geolocation.getCurrentPosition(p=>{map.setView([p.coords.latitude,p.coords.longitude],15);if(marker)marker.remove();marker=L.marker([p.coords.latitude,p.coords.longitude]).addTo(map).bindPopup("You are here").openPopup();getWeather(p.coords.latitude,p.coords.longitude,"Your location")},()=>showMsg("Location permission was not granted."))}
+async function getWeather(lat,lon,name){const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`);const x=await r.json();document.getElementById("weather").innerHTML=`<b>${name||""}</b><br>🌡️ ${x.current.temperature_2m}°C (feels ${x.current.apparent_temperature}°C)<br>💨 ${x.current.wind_speed_10m} km/h<br><span class="muted">Weather code: ${x.current.weather_code}</span>`}
+function useDestWeather(){if(current)getWeather(current.latitude,current.longitude,current.name);else searchMap()}
+async function convert(){const b=document.getElementById("base").value.toUpperCase(),q=document.getElementById("quote").value.toUpperCase(),a=Number(document.getElementById("amount").value||1);if(b===q){document.getElementById("fx").textContent=`${a} ${b} = ${a.toFixed(2)} ${q}`;return}try{const r=await fetch(`https://api.frankfurter.dev/v2/rate/${b}/${q}`);if(!r.ok)throw 0;const x=await r.json();document.getElementById("fx").textContent=`${a} ${b} = ${(a*x.rate).toFixed(2)} ${q} • rate ${x.rate}`}catch(e){document.getElementById("fx").textContent="Rate unavailable for this pair."}}
+function speakText(){const t=document.getElementById("trText").value;if(!t)return;const u=new SpeechSynthesisUtterance(t);u.lang=lang==="ru"?"ru-RU":lang==="uz"?"uz-UZ":"en-US";speechSynthesis.speak(u)}
+function listen(){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return showMsg("Voice recognition is not supported in this browser.");const r=new R();r.lang=lang==="ru"?"ru-RU":lang==="uz"?"uz-UZ":"en-US";r.onresult=e=>document.getElementById("trText").value=e.results[0][0].transcript;r.start()}
+async function camera(){try{const s=await navigator.mediaDevices.getUserMedia({video:true});document.getElementById("cam").srcObject=s;document.getElementById("cam").style.display="block"}catch(e){showMsg("Camera permission was not granted.")}}
+function stopCamera(){const v=document.getElementById("cam");if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop());v.style.display="none"}
+function plan(){const d=document.getElementById("pDest").value||document.getElementById("dest").value||"your destination",days=Number(document.getElementById("days").value||3),b=document.getElementById("budget").value||"your budget";let x=[];for(let i=1;i<=days;i++)x.push(`<b>Day ${i}</b>: morning — main landmark; afternoon — local food & neighborhood; evening — scenic/free activity.`);document.getElementById("planOut").innerHTML=`<b>${d}</b> · ${days} days · budget: ${b}<br>${x.join("<br>")}`}
+function askAI(){const m=document.getElementById("ask").value.toLowerCase();let a=m.includes("weather")?"Use Weather after choosing a destination.":m.includes("map")?"Search a place on the map and use My location.":m.includes("currency")?"Open Currency and choose base/target currencies.":m.includes("translate")?"Use Translator with voice input/output where supported.":m.includes("hotel")?"WorldMate's hotel provider can be connected in a future backend version.":"I can help with maps, weather, currency, translation, planning and travel safety.";document.getElementById("answer").textContent=a}
+function openAuth(){document.getElementById("auth").classList.add("on");document.getElementById("ident").value=localStorage.wmProfile||""}
+function closeAuth(){document.getElementById("auth").classList.remove("on")}
+function saveProfile(){const n=document.getElementById("ident").value.trim();if(!n)return;localStorage.wmProfile=n;loadProfile();closeAuth();showMsg("Profile saved")}
+function logout(){localStorage.removeItem("wmProfile");loadProfile();showMsg("Local profile cleared")}
+function loadProfile(){const n=localStorage.wmProfile;document.getElementById("me").textContent=n?`Signed in locally as ${n}`:"Guest mode — no server account is required for GitHub Pages.";document.getElementById("authBtn").textContent=n?"Profile":"Sign in"}
+initMap();loadProfile();
+document.getElementById("news").innerHTML='<span class="pill">WorldMate Global V7.1</span><span class="pill">GitHub Pages edition</span><span class="pill">English • Русский • O‘zbekcha</span>';
+</script>
+</body></html>
